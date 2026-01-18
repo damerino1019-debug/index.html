@@ -1,0 +1,96 @@
+/* --- 全体レイアウト --- */
+body {
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    /* 丸みのある標準的なフォント */
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+}
+
+#game-container {
+    position: relative;
+    width: 480px;
+    height: 480px;
+}
+
+canvas {
+    background: #000;
+    border: 2px solid #333;
+    display: block;
+    image-rendering: pixelated; /* ドット絵の鮮明さを維持 */
+}
+
+/* --- 会話UI (メッセージウィンドウ) --- */
+#msg-ui { 
+    position: absolute; 
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 420px; 
+    height: 115px; 
+    background: rgba(0, 0, 0, 0.9) !important; 
+    color: #fff !important; 
+    padding: 15px; 
+    display: none; 
+    z-index: 9999; 
+    border: 2px solid #fff !important;
+    box-sizing: border-box;
+    
+    /* --- フォントサイズ調整 --- */
+    font-size: 15px;       /* 18pxから15pxに縮小 */
+    line-height: 1.6;      /* 行間を少し広めに設定して読みやすく */
+    letter-spacing: 0.5px; /* 文字の間隔をわずかに広げる */
+    
+    border-radius: 10px; 
+
+    /* JavaScriptからの改行コード(\n)を有効にする設定 */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* 以前の名前ラベルを削除 */
+#msg-ui::before {
+    display: none !important;
+}
+
+/* --- バトル背景レイヤー --- */
+#battle-overlay {
+    position: absolute;
+    top: 0; 
+    left: 0;
+    width: 480px; 
+    height: 480px;
+    background-color: #000 !important;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 500;
+    opacity: 0;
+    transition: opacity 0.8s ease-in;
+}
+
+/* --- 敵の画像設定 --- */
+#battle-enemy-img {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    margin-bottom: 80px; 
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 1.2s ease-out 0.6s, transform 1.2s ease-out 0.6s;
+}
+
+/* 演出開始用クラス */
+#battle-overlay.active { 
+    opacity: 1; 
+}
+
+#battle-overlay.active #battle-enemy-img { 
+    opacity: 1; 
+    transform: scale(1.0); 
+}

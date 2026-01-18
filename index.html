@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <title>RPG Battle Scene Edition</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        #game-container { position: relative; width: 480px; height: 480px; }
+        canvas { background: #000; border: 2px solid #333; display: block; }
+    </style>
+</head>
+<body onclick="document.getElementById('g').focus();">
+
+    <div id="game-container">
+        <canvas id="g" width="480" height="480" tabindex="1"></canvas>
+        
+        <div id="battle-overlay">
+            <img id="battle-enemy-img" src="">
+        </div>
+
+        <div id="msg-ui" data-name=""></div>
+    </div>
+
+    <script src="maps.js"></script>
+    <script src="scenario.js"></script>
+    <script src="assets.js"></script>
+    <script src="battle_data.js"></script>
+
+    <script src="input.js"></script>
+    <script src="gameStats.js"></script>
+    <script src="worldManager.js"></script> <script src="ui.js"></script>
+    <script src="renderer.js"></script>
+    <script src="battle.js"></script>
+
+    <script src="logic.js"></script>
+    
+</body>
+</html>
