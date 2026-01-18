@@ -1,46 +1,66 @@
+/**
+ * assets.js - キャラクター外見設定
+ * shapeの種類: "human" (人型), "girl" (女の子), "circle" (まる), "box" (しかく)
+ */
 window.AssetData = {
     "default": {
         "color": "#f0a",
         "animType": "stretch",
         "scale": 1.0,
-        "shape": "box"
+        "shape": "human"
     },
-    "king": {
-        "color": "#848717",
+    "girl": {
+        "color": "#ffc0cb",
         "animType": "float",
+        "scale": 1.0,
+        "shape": "girl"
+    },
+    "npc_circle": {
+        "color": "#d4ff5c",
+        "animType": "float",
+        "scale": 1.0,
+        "shape": "circle"
+    },
+    "npc_box": {
+        "color": "#00dbff",
+        "animType": "stretch",
         "scale": 1.0,
         "shape": "box"
     },
-    "魔王": {
-        "color": "#874773",
-        "animType": "stretch",
-        "scale": 1.3,
-        "shape": "spike"
-    },
-    "bounce": {
-        "color": "#516514",
+    "king": {
+        "color": "#ffcc00",
         "animType": "bounce",
-        "scale": 1.0
-    },
-    "float": {
-        "color": "#6361a6",
-        "animType": "float",
-        "scale": 1.0
-    },
-    "stretch": {
-        "color": "#a65fa2",
-        "animType": "stretch",
-        "scale": 1.0
+        "scale": 1.4,
+        "shape": "human"
     },
     "none": {
-        "color": "#a65e49",
+        "color": "#9f6ac3",
         "animType": "none",
-        "scale": 1.0
+        "scale": 1.0,
+        "shape": "human"
     },
-    "none2": {
-        "color": "#a65e49",
-        "animType": "none",
-        "scale": 1.5,
-        "shape": "spike"
+    "bounce": {
+        "color": "#43c3af",
+        "animType": "bounce",
+        "scale": 0.5,
+        "shape": "girl"
+    },
+    "stretch": {
+        "color": "#43c3af",
+        "animType": "stretch",
+        "scale": 0.9,
+        "shape": "circle"
+    },
+    "魔王": {
+        "color": "#a2006e",
+        "animType": "stretch",
+        "scale": 1.3,
+        "shape": "human"
+    },
+    "旅人": {
+        "color": "#eeff2a",
+        "animType": "bounce",
+        "scale": 1.0,
+        "shape": "human"
     }
 };

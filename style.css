@@ -9,6 +9,27 @@
     color: white;
     padding: 15px;
     z-index: 100;
-    /* 最初は非表示、UI.showText()で表示される */
     display: none; 
+}
+
+#battle-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: black;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+    opacity: 0;
+}
+
+#battle-enemy-img {
+    max-width: 55%;
+    max-height: 50%;
+    object-fit: contain;
+    /* 白い枠線を完全に消すための設定 */
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent;
 }

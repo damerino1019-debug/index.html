@@ -1,133 +1,106 @@
-/**
- * logic.js - 完全復旧版
- */
-const cvs = document.getElementById('g');
-const ctx = cvs.getContext('2d');
-const msgUI = document.getElementById('msg-ui');
-const T = 32; 
+(function() {
+    const START_X = 7;
+    const START_Y = 6; 
 
-// 初期状態の設定
-window.mode = 'title'; 
-let titleSubText = "第一章：運命の旅立ち"; 
-let p = { x: 7, y: 4, lx: 7, ly: 4, d: 'down', isMoving: false }; 
+    window.mode = 'title'; 
+    let p = { x: START_X, y: START_Y, lx: START_X, ly: START_Y, d: 'down' }; 
+    let talkData = null;
+    let currentPage = 0;
+    let talkingNpc = null; 
 
-let talkData = null;
-let currentPage = 0;
-let talkingNpc = null; 
+    function mainLoop() {
+        if (!window.Renderer || !window.WorldManager || !window.WorldData) {
+            requestAnimationFrame(mainLoop);
+            return;
+        }
+        const canvas = window.cvs || document.getElementById('g');
+        const context = window.ctx || (canvas ? canvas.getContext('2d') : null);
+        if (!context) return requestAnimationFrame(mainLoop);
 
-/**
- * メインループ（描画と更新）
- */
-function mainLoop() {
-    // データが揃っていない場合は待機
-    if (!window.WorldData || !window.Renderer || !window.WorldManager) {
+        const currentMapKey = window.WorldManager.currentMap || 'village';
+        const worldData = window.WorldData[currentMapKey];
+
+        p.lx += (p.x - p.lx) * 0.2;
+        p.ly += (p.y - p.ly) * 0.2;
+
+        window.Renderer.render(
+            context, canvas, worldData, p, 
+            window.AssetData || {}, 
+            talkingNpc, {}, 
+            window.T || 32, window.mode, "PRESS ACTION"
+        );
+
+        if (window.mode === 'walk') handleMove();
         requestAnimationFrame(mainLoop);
-        return;
     }
 
-    const currentMapKey = window.WorldManager.currentMap || 'castle';
-    const worldData = window.WorldData[currentMapKey];
-
-    // プレイヤーの座標を滑らかに動かす
-    p.lx += (p.x - p.lx) * 0.2;
-    p.ly += (p.y - p.ly) * 0.2;
-
-    // 描画を Renderer に依頼
-    window.Renderer.render(
-        ctx, cvs, worldData, p, 
-        window.AssetData || {}, 
-        talkingNpc, 
-        {}, 
-        T, window.mode, titleSubText
-    );
-
-    // 移動の処理
-    handleMove();
-
-    requestAnimationFrame(mainLoop);
-}
-
-/**
- * キャラクターの移動処理
- */
-function handleMove() {
-    if (window.mode !== 'walk') return;
-    // 移動中は入力を無視
-    if (Math.abs(p.x - p.lx) > 0.05 || Math.abs(p.y - p.ly) > 0.05) return;
-
-    let dx = 0, dy = 0;
-    if (Input.isPressed('up')) { dy = -1; p.d = 'up'; }
-    else if (Input.isPressed('down')) { dy = 1; p.d = 'down'; }
-    else if (Input.isPressed('left')) { dx = -1; p.d = 'left'; }
-    else if (Input.isPressed('right')) { dx = 1; p.d = 'right'; }
-
-    if (dx !== 0 || dy !== 0) {
-        const nx = p.x + dx, ny = p.y + dy;
-        if (window.WorldManager && !window.WorldManager.isBlocked(nx, ny)) {
-            p.x = nx; p.y = ny;
-            window.WorldManager.checkExits(p);
+    function handleMove() {
+        if (Math.abs(p.x - p.lx) > 0.05 || Math.abs(p.y - p.ly) > 0.05) return;
+        let dx = 0, dy = 0;
+        if (typeof window.isPressed === 'function') {
+            if (window.isPressed('up')) { dy = -1; p.d = 'up'; }
+            else if (window.isPressed('down')) { dy = 1; p.d = 'down'; }
+            else if (window.isPressed('left')) { dx = -1; p.d = 'left'; }
+            else if (window.isPressed('right')) { dx = 1; p.d = 'right'; }
+        }
+        if (dx !== 0 || dy !== 0) {
+            if (window.WorldManager && !window.WorldManager.isBlocked(p.x + dx, p.y + dy)) {
+                p.x += dx; p.y += dy;
+                window.WorldManager.checkExits(p);
+            }
         }
     }
-}
 
-/**
- * 決定キー（アクション）の処理
- */
-function handleAction() {
-    if (window.mode === 'title') {
-        window.mode = 'walk';
-        return;
-    }
-    if (window.mode !== 'walk') return;
-
-    let tx = p.x + (p.d === 'left' ? -1 : p.d === 'right' ? 1 : 0);
-    let ty = p.y + (p.d === 'up' ? -1 : p.d === 'down' ? 1 : 0);
-    
-    const n = window.WorldManager.getNpcAt(tx, ty);
-    if (n && window.ScenarioData[n.sceneKey]) {
-        talkData = window.ScenarioData[n.sceneKey];
-        talkingNpc = n;
+    function startTalk(data, npc) {
+        talkData = data;
+        talkingNpc = npc;
         currentPage = 0;
-
-        const startDialogue = () => {
-            window.mode = 'talk';
-            msgUI.style.display = 'block';
-            msgUI.innerText = talkData.pages[0];
-        };
-
-        // バトル設定がある場合は、バトルを挟んでから会話
-        if (talkData.battleScene && window.BattleSystem) {
-            window.BattleSystem.start(talkData.battleScene, startDialogue);
-        } else {
-            startDialogue();
+        window.mode = 'talk';
+        if (window.msgUI) {
+            window.msgUI.innerText = talkData.pages[0];
+            window.msgUI.style.display = 'block';
         }
     }
-}
 
-/**
- * 会話を進める処理
- */
-function handleTalk() {
-    if (!talkData) return;
-    currentPage++;
+    window.handleAction = function() {
+        if (window.mode === 'title') { 
+            p.x = START_X; p.y = START_Y; p.lx = START_X; p.ly = START_Y;
+            window.mode = 'walk'; 
+            return; 
+        }
+        
+        if (window.mode === 'talk') {
+            currentPage++;
+            if (!talkData || currentPage >= talkData.pages.length) {
+                if (window.msgUI) window.msgUI.style.display = 'none';
+                window.mode = 'walk';
+                talkingNpc = null;
+                if (window.BattleSystem) window.BattleSystem.end();
+            } else if (window.msgUI) {
+                // 正しく UI に次のページを表示
+                window.msgUI.innerText = talkData.pages[currentPage];
+            }
+            return;
+        }
+        
+        if (window.mode === 'walk') {
+            let tx = p.x + (p.d==='left'?-1:p.d==='right'?1:0);
+            let ty = p.y + (p.d==='up'?-1:p.d==='down'?1:0);
+            const n = window.WorldManager ? window.WorldManager.getNpcAt(tx, ty) : null;
+            
+            if (n && window.ScenarioData[n.sceneKey]) {
+                const scenario = window.ScenarioData[n.sceneKey];
+                if (scenario.battleScene && window.BattleSystem) {
+                    window.mode = 'wait'; 
+                    window.BattleSystem.start(scenario.battleScene, () => {
+                        startTalk(scenario, n);
+                    });
+                } else {
+                    startTalk(scenario, n);
+                }
+            }
+        }
+    };
 
-    if (currentPage >= talkData.pages.length) {
-        msgUI.style.display = 'none';
-        window.mode = 'walk';
-        talkingNpc = null;
-        if (window.BattleSystem) window.BattleSystem.end();
-        return;
-    }
-    msgUI.innerText = talkData.pages[currentPage];
-}
-
-// キーボードイベントの登録
-window.addEventListener('keydown', (e) => {
-    if (e.key === " " || e.key === "Enter") {
-        if (window.mode === 'title' || window.mode === 'walk') handleAction();
-        else if (window.mode === 'talk') handleTalk();
-    }
-});
-
-// ゲーム開始
-mainLoop();
+    mainLoop();
+})();

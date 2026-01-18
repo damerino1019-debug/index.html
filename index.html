@@ -2,52 +2,160 @@
 <html lang="ja">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RPG Full Recovery</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>RPG Final System</title>
     <style>
-        body { background: #111; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; font-family: sans-serif; }
-        #game-container { position: relative; width: 480px; height: 480px; }
-        canvas { background: #000; border: 2px solid #333; display: block; width: 100%; height: 100%; }
+        /* 全体レイアウト */
+        body { 
+            background: #111; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
+            -webkit-user-select: none; 
+            user-select: none; 
+            touch-action: manipulation; 
+        }
 
-        /* バトルオーバーレイ */
-        #battle-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; justify-content: center; align-items: center; z-index: 50; opacity: 0; transition: opacity 0.5s; }
-        #battle-overlay.active { opacity: 1; }
-        #battle-enemy-img { max-width: 80%; max-height: 80%; object-fit: contain; }
+        #game-container { 
+            position: relative; 
+            width: 480px; 
+            height: 480px; 
+            background: #000; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+            image-rendering: pixelated; 
+        }
 
-        /* メッセージUI */
-        #msg-ui { display: none; position: absolute; bottom: 10px; left: 10px; right: 10px; height: 100px; background: rgba(0,0,0,0.85); color: white; padding: 15px; border: 2px solid #fff; z-index: 100; pointer-events: none; }
+        /* メッセージウィンドウ */
+        #msg-ui { 
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid white;
+            color: white;
+            padding: 15px;
+            z-index: 100;
+            display: none;
+            font-size: 18px;
+            line-height: 1.6;
+            pointer-events: none;
+        }
 
-        /* スマホ用ボタン (再設置) */
-        .controls { width: 480px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
-        .d-pad { display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); }
-        .btn { width: 50px; height: 50px; background: #444; color: white; border: none; border-radius: 5px; font-weight: bold; }
-        .action-btn { width: 100px; height: 100px; background: #a22; border-radius: 50%; color: white; border: 3px solid #fff; font-size: 18px; }
+        /* バトルオーバーレイ（中央配置用修正） */
+        #battle-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: black;
+            display: none;
+            flex-direction: column;
+            justify-content: center; /* 垂直中央 */
+            align-items: center;     /* 水平中央 */
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.5s ease; /* フェード用 */
+        }
+
+        /* 敵画像（サイズと枠線の修正） */
+        #battle-enemy-img {
+            max-width: 55%;  /* 少し小さめに設定 */
+            max-height: 50%; /* メッセージウィンドウとの重なり防止 */
+            object-fit: contain;
+            border: none !important;    /* 白い枠線を強制削除 */
+            outline: none !important;   /* アウトラインも削除 */
+            box-shadow: none !important;
+            margin-bottom: 60px; /* 下に余裕を持たせる */
+        }
+
+        /* 操作パネル */
+        #controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-areas: 
+                ". up ."
+                "left action right"
+                ". down .";
+            gap: 10px;
+        }
+        .btn {
+            width: 60px; height: 60px;
+            background: #333; color: white;
+            border: none; border-radius: 10px;
+            font-weight: bold; font-size: 14px;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .btn:active { background: #666; }
+        #btn-up { grid-area: up; }
+        #btn-down { grid-area: down; }
+        #btn-left { grid-area: left; }
+        #btn-right { grid-area: right; }
+        #btn-action { grid-area: action; width: 80px; background: #a00; }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <canvas id="g" width="480" height="480" tabindex="1"></canvas>
-        <div id="battle-overlay"><img id="battle-enemy-img" src=""></div>
+        <canvas id="g" width="480" height="480"></canvas>
         <div id="msg-ui"></div>
+        <div id="battle-overlay">
+            <img id="battle-enemy-img" src="" alt="enemy">
+        </div>
     </div>
 
-    <div class="controls">
-        <div class="d-pad">
-            <div style="grid-column:2"><button class="btn" onmousedown="Input.keys['up']=true" onmouseup="Input.keys['up']=false" ontouchstart="Input.keys['up']=true" ontouchend="Input.keys['up']=false">▲</button></div>
-            <div style="grid-row:2; grid-column:1"><button class="btn" onmousedown="Input.keys['left']=true" onmouseup="Input.keys['left']=false" ontouchstart="Input.keys['left']=true" ontouchend="Input.keys['left']=false">◀</button></div>
-            <div style="grid-row:2; grid-column:3"><button class="btn" onmousedown="Input.keys['right']=true" onmouseup="Input.keys['right']=false" ontouchstart="Input.keys['right']=true" ontouchend="Input.keys['right']=false">▶</button></div>
-            <div style="grid-row:3; grid-column:2"><button class="btn" onmousedown="Input.keys['down']=true" onmouseup="Input.keys['down']=false" ontouchstart="Input.keys['down']=true" ontouchend="Input.keys['down']=false">▼</button></div>
-        </div>
-        <button class="action-btn" onclick="window.dispatchEvent(new KeyboardEvent('keydown', {key: ' '}))">ACTION</button>
+    <div id="controls">
+        <button class="btn" id="btn-up">▲</button>
+        <button class="btn" id="btn-left">◀</button>
+        <button class="btn" id="btn-action">ACTION</button>
+        <button class="btn" id="btn-right">▶</button>
+        <button class="btn" id="btn-down">▼</button>
     </div>
+
+    <script>
+        window.cvs = document.getElementById('g');
+        window.ctx = window.cvs.getContext('2d');
+        window.msgUI = document.getElementById('msg-ui');
+        window.T = 32;
+
+        const setupBtn = (id, key) => {
+            const b = document.getElementById(id);
+            const press = (e) => { 
+                if(e.cancelable) e.preventDefault(); 
+                window.dispatchEvent(new KeyboardEvent('keydown', {key})); 
+            };
+            const release = (e) => { 
+                if(e.cancelable) e.preventDefault(); 
+                window.dispatchEvent(new KeyboardEvent('keyup', {key})); 
+            };
+            b.addEventListener('touchstart', press, {passive:false});
+            b.addEventListener('touchend', release, {passive:false});
+            b.addEventListener('mousedown', press);
+            b.addEventListener('mouseup', release);
+        };
+        setupBtn('btn-up', 'ArrowUp');
+        setupBtn('btn-down', 'ArrowDown');
+        setupBtn('btn-left', 'ArrowLeft');
+        setupBtn('btn-right', 'ArrowRight');
+    </script>
 
     <script src="maps.js"></script>
     <script src="scenario.js"></script>
     <script src="assets.js"></script>
     <script src="battle_data.js"></script>
-    <script src="input.js"></script>
-    <script src="renderer.js"></script>
     <script src="battle.js"></script>
+    <script src="renderer.js"></script>
+    <script src="worldManager.js"></script>
+    <script src="input.js"></script>
     <script src="logic.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>

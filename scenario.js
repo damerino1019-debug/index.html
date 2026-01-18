@@ -99,5 +99,26 @@ window.ScenarioData = {
             "この命知らずが後悔するといい・・・"
         ],
         "battleScene": "bt_sc_forest_11_1"
+    },
+    "sc_forest_7_6": {
+        "pages": [
+            "こんにちは"
+        ]
+    },
+    "sc_village_2_1": {
+        "pages": [
+            "よくぞここまで来たな、勇者よ。",
+            "この村を滅ぼす前に、貴様を血祭りにあげてやろう！",
+            "さぁ、後悔するがよい！"
+        ],
+        "battleScene": "bt_sc_village_2_1"
+    },
+    "sc_village_12_5": {
+        "pages": [
+            "こんにちは私は妖精よ",
+            "あなた旅人かしら？",
+            "人間は嫌い"
+        ],
+        "battleScene": "bt_sc_village_12_5"
     }
 };

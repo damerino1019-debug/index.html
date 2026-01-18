@@ -1,89 +1,114 @@
-/**
- * renderer.js - 修正版
- */
 window.Renderer = {
     render: function(ctx, cvs, worldData, p, assetData, talkingNpc, logic, T, mode, titleText) {
-        // 背景を真っ黒に塗る（これが動いていれば「真っ暗」ではなくなります）
         ctx.fillStyle = "black";
         ctx.fillRect(0, 0, cvs.width, cvs.height);
 
-        // --- タイトル画面 ---
         if (mode === 'title') {
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
-            ctx.font = "bold 30px sans-serif";
+            ctx.font = "bold 24px sans-serif";
             ctx.fillText("RPG QUEST", cvs.width / 2, 150);
-            
-            ctx.font = "18px sans-serif";
-            ctx.fillStyle = "#aaa";
-            ctx.fillText(titleText || "第一章：運命の旅立ち", cvs.width / 2, 200);
-
-            if (Math.floor(Date.now() / 500) % 2 === 0) {
-                ctx.fillStyle = "white";
-                ctx.fillText("PRESS ACTION TO START", cvs.width / 2, 300);
-            }
             return;
         }
 
-        // --- マップ描画 ---
-        if (!worldData || !worldData.map) return;
-        const map = worldData.map;
-        for (let y = 0; y < map.length; y++) {
-            for (let x = 0; x < map[y].length; x++) {
-                ctx.fillStyle = map[y][x] === 1 ? "#333" : "#0d0d0d";
-                ctx.fillRect(x * T, y * T, T - 1, T - 1);
-            }
-        }
+        if (!worldData) return;
+        const offsetX = cvs.width / 2 - (p.lx * T + T / 2);
+        const offsetY = cvs.height / 2 - (p.ly * T + T / 2);
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
 
-        // --- NPC描画 ---
+        // マップ描画（境界線なし）
+        worldData.map.forEach((row, y) => {
+            row.forEach((cell, x) => {
+                ctx.fillStyle = cell === 1 ? "#333" : "#1a1a1a";
+                ctx.fillRect(x * T, y * T, T, T);
+            });
+        });
+
+        // NPC描画
         if (worldData.npcs) {
             worldData.npcs.forEach(n => {
+                // assets.jsからデータを取得。見つからない場合はdefaultを使用
                 const asset = assetData[n.type] || assetData["default"];
-                this.drawEntity(ctx, n.x * T + T/2, n.y * T + T/2, T, asset, n.d);
+                const isTalking = talkingNpc && n.x === talkingNpc.x && n.y === talkingNpc.y;
+                this.drawEntity(ctx, n.x * T + T / 2, n.y * T + T / 2, T, asset, n.d || 'down', false, isTalking);
             });
         }
-
-        // --- プレイヤー描画 ---
-        this.drawEntity(ctx, p.lx * T + T/2, p.ly * T + T/2, T, assetData["default"], p.d);
+        
+        // プレイヤー描画
+        const isMoving = Math.abs(p.x - p.lx) > 0.01 || Math.abs(p.y - p.ly) > 0.01;
+        const pAsset = assetData["default"]; // プレイヤーはdefault固定
+        this.drawEntity(ctx, p.lx * T + T / 2, p.ly * T + T / 2, T, pAsset, p.d, isMoving, false);
+        
+        ctx.restore();
     },
 
-    drawEntity: function(ctx, cx, cy, T, asset, dir) {
+    drawEntity: function(ctx, cx, cy, T, asset, dir, isMoving, isTalking) {
         ctx.save();
         ctx.translate(cx, cy);
+        
         const time = Date.now() / 1000;
-        let sX = 1.0, sY = 1.0, offY = 0;
+        let offY = 0;
+        let sY = 1.0;
+        const anim = asset.animType; // stretch, float, bounce など
 
-        if (asset.animType === "bounce") { offY = -Math.abs(Math.sin(time * 10)) * 6; sX = 1.1; }
-        if (asset.animType === "stretch") { sY = 1 + Math.sin(time * 5) * 0.1; }
-        if (asset.animType === "float") { offY = Math.sin(time * 4) * 4; }
+        // --- モーション判定 ---
+        if (isTalking) {
+            offY = -Math.abs(Math.sin(time * 15)) * 8; // 会話中のジャンプ
+        } else if (isMoving) {
+            offY = -Math.abs(Math.sin(time * 12)) * 4; // 歩行アニメ
+        } else {
+            // 待機中：assets.jsの設定に従う
+            if (anim === "bounce") {
+                offY = -Math.abs(Math.sin(time * 8 + cx)) * 5;
+            } else if (anim === "float") {
+                offY = Math.sin(time * 4 + cx) * 4;
+            } else if (anim === "stretch") {
+                sY = 1 + Math.sin(time * 4 + cx) * 0.05;
+            }
+        }
 
         ctx.translate(0, offY);
-        ctx.scale(sX * (asset.scale || 1.0), sY * (asset.scale || 1.0));
-        ctx.fillStyle = asset.color;
-        const r = T/2 - 4;
+        ctx.scale(asset.scale || 1.0, sY * (asset.scale || 1.0));
 
-        if (asset.shape === "spike") {
+        // 色の反映
+        ctx.fillStyle = asset.color || "#f0a";
+        const shape = asset.shape || "human";
+
+        // 形状の描画
+        if (shape === "girl") {
             ctx.beginPath();
-            for(let i=0; i<16; i++){
-                let a = (i/16)*Math.PI*2;
-                let d = i%2===0 ? r : r*0.5;
-                ctx.lineTo(Math.cos(a)*d, Math.sin(a)*d);
-            }
+            if(ctx.roundRect) ctx.roundRect(-T/4.5, -T/10, T/2.2, T/2.2, [4, 4, 10, 10]);
+            else ctx.fillRect(-T/4.5, -T/10, T/2.2, T/2.2);
+            ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -T/4.5, T/5.2, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "red"; ctx.fillRect(-5, -T/2.2, 10, 4); // リボン
+        } else if (shape === "human") {
+            ctx.beginPath();
+            if(ctx.roundRect) ctx.roundRect(-T/4.5, -T/10, T/2.2, T/2.3, 8);
+            else ctx.fillRect(-T/4.5, -T/10, T/2.2, T/2.3);
+            ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -T/4.5, T/5.2, 0, Math.PI * 2); ctx.fill();
+        } else if (shape === "box") {
+            ctx.beginPath();
+            if(ctx.roundRect) ctx.roundRect(-T/3.5, -T/3.5, T/1.75, T/1.75, 4);
+            else ctx.fillRect(-T/3.5, -T/3.5, T/1.75, T/1.75);
             ctx.fill();
         } else {
-            ctx.fillRect(-r, -r, r * 2, r * 2);
+            ctx.beginPath(); ctx.arc(0, 0, T/2.5, 0, Math.PI * 2); ctx.fill();
         }
 
-        // 目の描画（前を向いている時だけ）
+        // 目の描画
         if (dir !== 'up') {
-            ctx.fillStyle = "white";
-            let ex = (dir === 'left') ? -5 : (dir === 'right') ? 5 : 0;
-            if (dir === 'down') {
-                ctx.fillRect(-6, -4, 4, 4); ctx.fillRect(2, -4, 4, 4);
-            } else {
-                ctx.fillRect(ex-2, -4, 4, 4);
-            }
+            ctx.fillStyle = "black";
+            let look = (dir === 'left' ? -1.2 : (dir === 'right' ? 1.2 : 0));
+            let eyeY = (shape === "circle" || shape === "box") ? 0 : -T/4.5;
+            this.drawEye(ctx, look - 2.2, eyeY); 
+            this.drawEye(ctx, look + 2.2, eyeY);
         }
         ctx.restore();
+    },
+    drawEye: function(ctx, x, y) {
+        ctx.beginPath(); ctx.ellipse(x, y, 1.4, 2.6, 0, 0, Math.PI * 2); ctx.fill();
     }
 };
